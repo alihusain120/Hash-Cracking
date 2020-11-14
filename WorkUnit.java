@@ -9,22 +9,65 @@
 /*   incorporates a field to save the result of    */
 /*   the performed computation.                    */
 /*                                                 */
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
 /***************************************************/
 
 public class WorkUnit {
 
     String hash;
     String result;
-    boolean isCompoundHint = false;
+    boolean isCompoundHint;
+    int start;
+    int end;
+    List<WorkUnitGroup> groups = new ArrayList<>();
+    boolean isCanceled = false;
+    Set<String> hashesToCheck;
 
     /* Simple constructor to set the input hash */
     public WorkUnit (String hash) {
       this.hash = hash;
       this.result = null;
+      this.isCompoundHint = false;
+    }
+
+    public WorkUnit(int start, int end, Set<String> hashes){
+        this.hash = null;
+        this.result = null;
+        this.isCompoundHint = true;
+        this.hashesToCheck = hashes;
+        this.start = start;
+        this.end = end;
     }
 
     public String getHash() {
 	return hash;
+    }
+    public void setHash(String toSet) {
+        this.hash = toSet;
+    }
+
+    public boolean isHint(){
+        return this.isCompoundHint;
+    }
+    public boolean isCanceled(){
+        return this.isCanceled;
+    }
+    public void cancel(){
+        this.isCanceled = true;
+    }
+    public void addGroup(WorkUnitGroup group){
+        this.groups.add(group);
+    }
+    public int getStart() {
+        return start;
+    }
+
+    public int getEnd() {
+        return end;
     }
 
     /* These can be handy to generalize the boundaries of hash
@@ -54,8 +97,12 @@ public class WorkUnit {
     public String toString() {
       if (this.result != null)
           return this.result;
-      else
+      else if (this.hash != null) {
           return this.hash;
-        }
+      } else {
+          return this.start + " " + this.end;
+      }
+
+    }
     
 }

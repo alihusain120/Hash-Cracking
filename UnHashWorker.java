@@ -43,6 +43,8 @@ public class UnHashWorker extends Thread {
 
     /* Boolean to kill the thread */
     volatile boolean stopThread = false;
+
+    Semaphore unitGroupMutex = new Semaphore(1);
     
     public UnHashWorker (LinkedList<WorkUnit> workQueue, LinkedList<WorkUnit> resQueue,
 			 Semaphore wqSem, Semaphore wqMutex,
@@ -100,6 +102,60 @@ public class UnHashWorker extends Thread {
 	    return result;
 	
     }
+
+    public WorkUnit hintUnhash(WorkUnit input) throws InterruptedException{
+      //System.out.println("y1");
+
+      WorkUnit result = input;
+      long timeStart = System.currentTimeMillis();
+
+      /* Construct a simple hasher class */
+      Hash hasher = new Hash();
+      String to_unhash = input.getHash();
+
+      /* Loop forever until a match is found */
+      for(int cur = input.getStart()+1; cur < input.getEnd(); ++cur) {
+        if (input.isCanceled()){
+          result.setResult(null);
+          break;
+        }
+        String numString = input.getStart() + ";" + cur + ";" + input.getEnd();
+        //System.out.println("Trying: " + numString);
+        String tmpHash = "";
+
+        try {
+          tmpHash = hasher.hash(numString);
+        } catch (NoSuchAlgorithmException ex) {
+          System.err.println("Unable to compute MD5 hashes.");
+          result.setResult("???");
+          break;
+        }
+
+        /* Does the current hash matches the target hash? */
+        if(input.hashesToCheck.contains(tmpHash)) {
+          /* Found it! Return right away. */
+          result.setResult(numString);
+          result.setHash(tmpHash);
+          unitGroupMutex.acquire();
+          for (WorkUnitGroup g : input.groups){
+            g.cancelAll();
+          }
+          unitGroupMutex.release();
+          break;
+        }
+
+        /* Check timeout, break if time budget exceeded
+        if (System.currentTimeMillis() > timeStart + this.timeoutMillis) {
+          result.setResult(null);
+          break;
+        }
+        */
+
+      }
+      //System.out.println("y2");
+      return result;
+
+    }
     
     public void run () 
     {
@@ -141,7 +197,17 @@ public class UnHashWorker extends Thread {
           wqMutex.release();
 
           if (work != null) {
-            result = timedUnhash(work);
+            try {
+              if (work.isCompoundHint()) {
+                result = hintUnhash(work);
+              } else {
+                result = timedUnhash(work);
+              }
+            } catch (InterruptedException e){
+              System.err.println("Thread interrupted while waiting for unitgroup mutex.");
+            }
+
+
 
             /* Got some result, add it to the output queue */
             try {

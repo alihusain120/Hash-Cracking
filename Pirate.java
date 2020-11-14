@@ -6,14 +6,16 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 public class Pirate {
 
   Set<String> toCrack = new HashSet<String>();
   Set<String> cracked = new HashSet<String>();
-  Set<String> hints = new HashSet<String>();
+  List<Integer> hints = new ArrayList<Integer>();
 
   int numCPUs;
   int timeoutMillis;
@@ -23,13 +25,22 @@ public class Pirate {
 
     /* Construct the dispatcher with all the necessary parameters */
     Dispatcher theDispatcher = new Dispatcher(numCPUs, timeoutMillis);
+    Dispatcher secondDispatcher = new Dispatcher(numCPUs, timeoutMillis);
 
-    /* Start the work */
-    theDispatcher.dispatch(toCrack, cracked);
+    /* Run initial for simple cracks */
+    theDispatcher.dispatchSimple(toCrack, cracked, hints);
+    this.hints.sort(null);
+    secondDispatcher.dispatchHints(toCrack, cracked, hints);
+
+
+
+
+
 
     for (String toPrint : cracked){
       System.out.println(toPrint);
     }
+
     for (String toPrint : toCrack){
       System.out.println(toPrint);
     }
@@ -45,10 +56,10 @@ public class Pirate {
   public void addCracked(String toAdd){
     this.cracked.add(toAdd);
   }
-  public void addHints(String toAdd){
+  public void addHints(Integer toAdd){
     this.hints.add(toAdd);
   }
-  public void removeHints(String toRemove){ this.hints.remove(toRemove);}
+  public void removeHints(Integer toRemove){ this.hints.remove(toRemove);}
   public int getNumCPUs() {
     return numCPUs;
   }
@@ -61,11 +72,6 @@ public class Pirate {
   public void setTimeoutMillis(int timeoutMillis) {
     this.timeoutMillis = timeoutMillis;
   }
-
-
-
-
-
 
 
 

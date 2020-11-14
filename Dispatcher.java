@@ -70,7 +70,7 @@ public class Dispatcher {
       }
     }
     
-    public void dispatch (Set<String> hashes, Set<String> results) throws InterruptedException
+    public void dispatchSimple(Set<String> hashes, Set<String> results, List<Integer> hints) throws InterruptedException
     {
       /* Pass each line read in input to the dehasher */
       int count = hashes.size();
@@ -104,6 +104,71 @@ public class Dispatcher {
       for (UnHashWorker worker : workers) {
         wqSem.release();
       }
+
+      /* Print out result */
+      for(WorkUnit res : resQueue) {
+        if (res.getResult() != null){
+          results.add(res.getResult());
+          hints.add(Integer.parseInt(res.getResult()));
+          hashes.remove(res.getHash());
+        }
+      }
+
+    }
+
+    public void dispatchHints(Set<String> hashes, Set<String> results, List<Integer> hints) throws InterruptedException{
+      /* Pass each line read in input to the dehasher */
+      int count = 0;
+      Map<Integer, WorkUnitGroup> unitGroups = new HashMap<>();
+      unitGroups.put(hints.get(0), new WorkUnitGroup(hints.get(0)));
+
+      for(int i = 0; i < hints.size()-1; i++){
+        for (int j = i+1; j < hints.size(); j++) {
+          if (unitGroups.get(hints.get(j)) == null){
+            unitGroups.put(hints.get(j), new WorkUnitGroup(hints.get(j)));
+          }
+          //System.out.println("Creating workunit " + hints.get(i) + " " + hints.get(j));
+          count++;
+          WorkUnit work = new WorkUnit(hints.get(i), hints.get(j), hashes);
+          WorkUnitGroup group1 = unitGroups.get(hints.get(i));
+          WorkUnitGroup group2 = unitGroups.get(hints.get(j));
+          work.addGroup(group1);
+          work.addGroup(group2);
+          group1.addUnit(work);
+          group2.addUnit(work);
+
+          wqMutex.acquire();
+          /* CRITICAL SECTION */
+
+          workQueue.add(work);
+
+          /* Signal the presence of new work to be done */
+          wqSem.release();
+
+          /* END OF CRITICAL SECTION */
+          wqMutex.release();
+        }
+      }
+      //System.out.println("x1");
+
+      /* At this point, we just wait for all the input to be consumed */
+      //System.out.println("yyy");
+      while(count-- > 0) {
+        rsSem.acquire();
+      }
+      //System.out.println("x2");
+
+      /* All done, terminate all the worker threads */
+      for (UnHashWorker worker : workers) {
+        worker.exitWorker();
+      }
+      //System.out.println("x3");
+
+      /* Make sure that no worker is stuck on the empty input queue */
+      for (UnHashWorker worker : workers) {
+        wqSem.release();
+      }
+      //System.out.println("x4");
 
       /* Print out result */
       for(WorkUnit res : resQueue) {
