@@ -48,122 +48,122 @@ public class UnHashWorker extends Thread {
 			 Semaphore wqSem, Semaphore wqMutex,
 			 Semaphore rsSem, Semaphore rsMutex)
     {
-	super();
-	this.workQueue = workQueue;
-	this.resQueue = resQueue;
-	this.wqSem = wqSem;
-	this.rsSem = rsSem;
-	this.wqMutex = wqMutex;
-	this.rsMutex = rsMutex;	
-	
-	/* Default to 10 seconds timeout */
-	this.timeoutMillis = 10000;
+      super();
+      this.workQueue = workQueue;
+      this.resQueue = resQueue;
+      this.wqSem = wqSem;
+      this.rsSem = rsSem;
+      this.wqMutex = wqMutex;
+      this.rsMutex = rsMutex;
+
+      /* Default to 10 seconds timeout */
+      this.timeoutMillis = 10000;
     }
     
 
     public WorkUnit timedUnhash (WorkUnit input)
     {
-	WorkUnit result = input;
-	long timeStart = System.currentTimeMillis();
+      WorkUnit result = input;
+      long timeStart = System.currentTimeMillis();
 
-    	/* Construct a simple hasher class */
-        Hash hasher = new Hash();
-	String to_unhash = input.getHash();	
-	
-	/* Loop forever until a match is found */
-        for(int cur = input.getLowerBound()+1; cur < input.getUpperBound(); ++cur) {
-	    String numString = Integer.toString(cur);
-            String tmpHash = "";
+          /* Construct a simple hasher class */
+      Hash hasher = new Hash();
+      String to_unhash = input.getHash();
 
-	    try {
-		tmpHash = hasher.hash(numString);
-            } catch (NoSuchAlgorithmException ex) {
-		System.err.println("Unable to compute MD5 hashes.");
-		result.setResult("???");
-		break;
-	    }
-	    
-            /* Does the current hash matches the target hash? */
-            if(tmpHash.equals(to_unhash)) {
-		/* Found it! Return right away. */
-		result.setResult(numString);
-		break;
-	    }
+      /* Loop forever until a match is found */
+      for(int cur = input.getLowerBound()+1; cur < input.getUpperBound(); ++cur) {
+        String numString = Integer.toString(cur);
+        String tmpHash = "";
 
-	    /* Check timeout, break if time budget exceeded */
-	    if (System.currentTimeMillis() > timeStart + this.timeoutMillis) {
-		result.setResult(null);
-		break;
-	    }
+        try {
+          tmpHash = hasher.hash(numString);
+        } catch (NoSuchAlgorithmException ex) {
+          System.err.println("Unable to compute MD5 hashes.");
+          result.setResult("???");
+          break;
         }
 
-	return result;
+        /* Does the current hash matches the target hash? */
+        if(tmpHash.equals(to_unhash)) {
+        /* Found it! Return right away. */
+          result.setResult(numString);
+          break;
+        }
+
+          /* Check timeout, break if time budget exceeded */
+        if (System.currentTimeMillis() > timeStart + this.timeoutMillis) {
+          result.setResult(null);
+          break;
+        }
+      }
+
+	    return result;
 	
     }
     
     public void run () 
     {
-	/* Loop forever until killed */
-	while(!this.stopThread) {
+      /* Loop forever until killed */
+      while(!this.stopThread) {
 
-	    WorkUnit work = null, result = null;
-	    
-	    /* Figre out if we can fetch a new piece of data from the
-	     * input queue */
-	    try {
-		wqSem.acquire();
-	    } catch (InterruptedException ex) {
-		System.err.println("Thread interrupted while waiting for work queue smaphore.");
-		continue;
-	    }
-	    
-	    /* Before trying to do more work, check that the thread is
-	     * still supposed to be alive */
-	    if (this.stopThread)
-		break;
-	    
-	    try {	    
-		wqMutex.acquire();
-	    } catch (InterruptedException ex) {
-		System.err.println("Thread interrupted while waiting for work queue mutex.");
-		wqSem.release();
-		continue;
-	    }
+          WorkUnit work = null, result = null;
 
-	    /* CRITICAL SECTION */
-	    try {
-		work = workQueue.remove();
-	    } catch (NoSuchElementException ex) {
-		/* If we did things right, this should never happen! */
-		System.err.println("Attempted to remove element from empty work queue.");
-	    }
-	    /* END OF CRITICAL SECTION */
-	    wqMutex.release();
-	    
-	    if (work != null) {
-		result = timedUnhash(work);
+          /* Figre out if we can fetch a new piece of data from the
+           * input queue */
+          try {
+            wqSem.acquire();
+          } catch (InterruptedException ex) {
+            System.err.println("Thread interrupted while waiting for work queue smaphore.");
+            continue;
+          }
 
-		/* Got some result, add it to the output queue */
-		try {
-		    rsMutex.acquire();
-		} catch (InterruptedException ex) {
-		    /* We are in trouble if this happens. We need
-		     * better handling here. But keeping it simple for
-		     * sake of code readibility. */
-		    System.err.println("Thread interrupted while waiting for output queue mutex.");
-		}
+          /* Before trying to do more work, check that the thread is
+           * still supposed to be alive */
+          if (this.stopThread)
+            break;
 
-		/* CRITICAL SECTION */
-		
-		resQueue.add(result);
+          try {
+            wqMutex.acquire();
+          } catch (InterruptedException ex) {
+            System.err.println("Thread interrupted while waiting for work queue mutex.");
+            wqSem.release();
+            continue;
+          }
 
-		/* Signal that new output is available */
-		rsSem.release();
-		
-		/* END OF CRITICAL SECTION */ 
-		rsMutex.release();
-	    }
-	}
+          /* CRITICAL SECTION */
+          try {
+            work = workQueue.remove();
+          } catch (NoSuchElementException ex) {
+            /* If we did things right, this should never happen! */
+            System.err.println("Attempted to remove element from empty work queue.");
+          }
+          /* END OF CRITICAL SECTION */
+          wqMutex.release();
+
+          if (work != null) {
+            result = timedUnhash(work);
+
+            /* Got some result, add it to the output queue */
+            try {
+                rsMutex.acquire();
+            } catch (InterruptedException ex) {
+                /* We are in trouble if this happens. We need
+                 * better handling here. But keeping it simple for
+                 * sake of code readibility. */
+                System.err.println("Thread interrupted while waiting for output queue mutex.");
+            }
+
+            /* CRITICAL SECTION */
+
+            resQueue.add(result);
+
+            /* Signal that new output is available */
+            rsSem.release();
+
+            /* END OF CRITICAL SECTION */
+            rsMutex.release();
+          }
+      }
     }
 
     /* Used to interrupt the thread at the end of the run */

@@ -15,11 +15,12 @@ public class WorkUnit {
 
     String hash;
     String result;
+    boolean isCompoundHint = false;
 
     /* Simple constructor to set the input hash */
     public WorkUnit (String hash) {
-	this.hash = hash;
-	this.result = null;
+      this.hash = hash;
+      this.result = null;
     }
 
     public String getHash() {
@@ -44,13 +45,17 @@ public class WorkUnit {
 	return result;
     }
 
+    public boolean isCompoundHint(){
+        return this.isCompoundHint;
+    }
+
     /* Render this WorkUnit when printed */
     @Override
     public String toString() {
-	if (this.result != null)
-	    return this.result;
-	else
-	    return this.hash;
-    }
+      if (this.result != null)
+          return this.result;
+      else
+          return this.hash;
+        }
     
 }
