@@ -14,8 +14,9 @@ import java.util.Set;
 public class Pirate {
 
   Set<String> toCrack = new HashSet<String>();
-  Set<String> cracked = new HashSet<String>();
+  List<Integer> cracked = new ArrayList<Integer>();
   List<Integer> hints = new ArrayList<Integer>();
+  String cypher;
 
   int numCPUs;
   int timeoutMillis;
@@ -23,28 +24,32 @@ public class Pirate {
 
   public void findTreasure() throws InterruptedException{
 
+    StringBuilder finalWord = new StringBuilder();
+
     /* Construct the dispatcher with all the necessary parameters */
     Dispatcher theDispatcher = new Dispatcher(numCPUs, timeoutMillis);
-    Dispatcher secondDispatcher = new Dispatcher(numCPUs, timeoutMillis);
 
     /* Run initial for simple cracks */
     theDispatcher.dispatchSimple(toCrack, cracked, hints);
     this.hints.sort(null);
-    secondDispatcher.dispatchHints(toCrack, cracked, hints);
-
-
-
-
-
-
-    for (String toPrint : cracked){
-      System.out.println(toPrint);
+    while (!toCrack.isEmpty()){
+      /* Continue until all ints*/
+      Dispatcher nextDispatcher = new Dispatcher(numCPUs, timeoutMillis);
+      nextDispatcher.dispatchHints(toCrack, cracked, hints);
+      this.hints.sort(null);
     }
 
+    cracked.sort(null);
+    for (Integer hintegers : cracked){
+      finalWord.append(cypher.charAt(hintegers));
+    }
+
+    System.out.println(finalWord.toString());
+    /*
     for (String toPrint : toCrack){
       System.out.println(toPrint);
     }
-
+    */
   }
 
   public void addToCrack(String toAdd){
@@ -53,7 +58,7 @@ public class Pirate {
   public void removeToCrack(String toRemove){
     this.toCrack.remove(toRemove);
   }
-  public void addCracked(String toAdd){
+  public void addCracked(Integer toAdd){
     this.cracked.add(toAdd);
   }
   public void addHints(Integer toAdd){
@@ -73,6 +78,10 @@ public class Pirate {
     this.timeoutMillis = timeoutMillis;
   }
 
+  public void setCypher(String cypher){
+    this.cypher = cypher;
+  }
+
 
 
 
@@ -86,6 +95,15 @@ public class Pirate {
     /* Read number of available CPUs */
     pirate.setNumCPUs(Integer.parseInt(args[1]));
     pirate.setTimeoutMillis(Integer.parseInt(args[2]));
+    String clueFilePath = args[3];
+
+    try {
+      pirate.setCypher(new String(Files.readAllBytes(Paths.get(clueFilePath))));
+    }
+    catch (IOException e)
+    {
+      e.printStackTrace();
+    }
 
     /* The fileName parameter contains the full path to the input file */
     Path file = Paths.get(inputFile);
@@ -116,6 +134,8 @@ public class Pirate {
     } else {
       System.err.println("Input file does not exist. Exiting.");
     }
+
+
 
     pirate.findTreasure();
   }

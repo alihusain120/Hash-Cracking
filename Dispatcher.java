@@ -70,7 +70,7 @@ public class Dispatcher {
       }
     }
     
-    public void dispatchSimple(Set<String> hashes, Set<String> results, List<Integer> hints) throws InterruptedException
+    public void dispatchSimple(Set<String> hashes, List<Integer> results, List<Integer> hints) throws InterruptedException
     {
       /* Pass each line read in input to the dehasher */
       int count = hashes.size();
@@ -108,15 +108,14 @@ public class Dispatcher {
       /* Print out result */
       for(WorkUnit res : resQueue) {
         if (res.getResult() != null){
-          results.add(res.getResult());
+          results.add(Integer.parseInt(res.getResult()));
           hints.add(Integer.parseInt(res.getResult()));
           hashes.remove(res.getHash());
         }
       }
-
     }
 
-    public void dispatchHints(Set<String> hashes, Set<String> results, List<Integer> hints) throws InterruptedException{
+    public void dispatchHints(Set<String> hashes, List<Integer> results, List<Integer> hints) throws InterruptedException{
       /* Pass each line read in input to the dehasher */
       int count = 0;
       Map<Integer, WorkUnitGroup> unitGroups = new HashMap<>();
@@ -170,10 +169,14 @@ public class Dispatcher {
       }
       //System.out.println("x4");
 
+      hints.clear();
       /* Print out result */
       for(WorkUnit res : resQueue) {
         if (res.getResult() != null){
-          results.add(res.getResult());
+
+          int resultFromHint = Integer.parseInt(res.getResult().substring(res.getResult().indexOf(';')+1, res.getResult().indexOf(';', res.getResult().indexOf(';')+1)));
+          results.add(resultFromHint);
+          hints.add(resultFromHint);
           hashes.remove(res.getHash());
         }
       }
