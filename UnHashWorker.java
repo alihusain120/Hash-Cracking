@@ -114,13 +114,12 @@ public class UnHashWorker extends Thread {
       String to_unhash = input.getHash();
 
       /* Loop forever until a match is found */
-      for(int cur = input.getStart()+1; cur < input.getEnd(); ++cur) {
+      for(int cur = input.getStart(); cur <= input.getEnd(); ++cur) {
         if (input.isCanceled()){
           result.setResult(null);
           break;
         }
         String numString = input.getStart() + ";" + cur + ";" + input.getEnd();
-        //System.out.println("Trying: " + numString);
         String tmpHash = "";
 
         try {
@@ -144,15 +143,7 @@ public class UnHashWorker extends Thread {
           break;
         }
 
-        /* Check timeout, break if time budget exceeded
-        if (System.currentTimeMillis() > timeStart + this.timeoutMillis) {
-          result.setResult(null);
-          break;
-        }
-        */
-
       }
-      //System.out.println("y2");
       return result;
 
     }

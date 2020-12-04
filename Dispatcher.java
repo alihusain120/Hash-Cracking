@@ -58,7 +58,7 @@ public class Dispatcher {
       rsMutex = new Semaphore(1);
 
       /* Start by spawning the worker threads */
-      for (int i = 0; i < N; ++i) {
+      for (int i = 0; i <= N; ++i) {
           UnHashWorker worker = new UnHashWorker(workQueue, resQueue,
                    wqSem, wqMutex,
                    rsSem, rsMutex);

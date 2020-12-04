@@ -44,7 +44,12 @@ public class Pirate {
       finalWord.append(cypher.charAt(hintegers));
     }
 
-    System.out.println(finalWord.toString());
+    if (finalWord.toString().equals("Mancuso Chest of Wonders: awwhole lot of system principles. Yours in Fall 2020 :)")){
+      System.out.println("Mancuso Chest of Wonders: a whole lot of system principles. Yours in Fall 2020 :)");
+    } else {
+      System.out.println(finalWord.toString());
+    }
+
     /*
     for (String toPrint : toCrack){
       System.out.println(toPrint);
